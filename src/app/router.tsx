@@ -17,13 +17,12 @@ import RoleRoute from "@/routes/RoleRoute";
 import { paths } from "@/const/paths";
 import { Role } from "@/const/enum";
 import NotFoundPage from "@/components/NotFoundPage/NotFoundPage";
+import RiderPage from "@/pages/RiderPage";
 
 // ---------------------------------------------------------------------------
 // Placeholder pages
 // ---------------------------------------------------------------------------
-function RiderPage() {
-  return <div className="p-8 text-white">Rider — coming soon</div>;
-}
+
 
 function DriverPage() {
   return <div className="p-8 text-white">Driver — coming soon</div>;
