@@ -18,15 +18,14 @@ import { paths } from "@/const/paths";
 import { Role } from "@/const/enum";
 import NotFoundPage from "@/components/NotFoundPage/NotFoundPage";
 import RiderPage from "@/pages/RiderPage";
+import DriverPage from "@/pages/DriverPage";
 
 // ---------------------------------------------------------------------------
 // Placeholder pages
 // ---------------------------------------------------------------------------
 
 
-function DriverPage() {
-  return <div className="p-8 text-white">Driver — coming soon</div>;
-}
+
 
 function HistoryPage() {
   return <div className="p-8 text-white">History — coming soon</div>;

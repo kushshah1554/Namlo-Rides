@@ -1,0 +1,18 @@
+{
+  "currentRide": {
+    "id": null,
+    "pickup": null,
+    "destination": null,
+    "status": "idle",
+    "riderId": null,
+    "driverId": null,
+    "requestedAt": null,
+    "acceptedAt": null,
+    "completedAt": null
+  },
+  "driverLocation": {
+    "lat": 27.7172,
+    "lng": 85.324,
+    "updatedAt": null
+  }
+}
