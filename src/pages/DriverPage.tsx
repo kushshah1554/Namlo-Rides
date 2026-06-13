@@ -267,7 +267,7 @@ export default function DriverPage() {
               setCurrentRide(null);
             }
           }
-        }, 3000);
+        }, 1000);
       }
     });
 

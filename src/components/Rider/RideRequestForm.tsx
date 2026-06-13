@@ -23,7 +23,10 @@ import type { LocationOption } from "@/services/geoapify";
 // ---------------------------------------------------------------------------
 const rideRequestSchema = z.object({
   pickup: z.string().min(2, "Pickup location is required").max(100, "Too long"),
-  destination: z.string().min(2, "Destination is required").max(100, "Too long"),
+  destination: z
+    .string()
+    .min(2, "Destination is required")
+    .max(100, "Too long"),
 });
 
 type RideRequestFormValues = z.infer<typeof rideRequestSchema>;
@@ -83,16 +86,23 @@ function AutocompleteDropdown({
   isLoading,
   isOpen,
   onSelect,
+  direction = "down",
 }: {
   options: LocationOption[];
   isLoading: boolean;
   isOpen: boolean;
   onSelect: (option: LocationOption) => void;
+  direction?: "up" | "down";
 }) {
   if (!isOpen) return null;
 
+  const positionClass =
+    direction === "up" ? "bottom-full mb-1" : "top-full mt-1";
+
   return (
-    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800 shadow-xl custom-scrollbar">
+    <div
+      className={`absolute left-0 right-0 ${positionClass} z-50 max-h-48 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800 shadow-xl custom-scrollbar`}
+    >
       {isLoading ? (
         <div className="flex items-center gap-2 px-3 py-3 text-xs text-zinc-400">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -127,12 +137,14 @@ function AutocompleteInput({
   autocomplete,
   onValueChange,
   registerProps,
+  dropdownDirection = "down",
 }: {
   placeholder: string;
   dotColor: string;
   disabled: boolean;
   autocomplete: ReturnType<typeof usePlaceAutocomplete>;
   onValueChange: (value: string) => void;
+  dropdownDirection?: "up" | "down";
   registerProps: ReturnType<typeof useForm>["register"] extends (
     ...args: infer A
   ) => infer R
@@ -141,7 +153,6 @@ function AutocompleteInput({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -158,7 +169,9 @@ function AutocompleteInput({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className={`absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full ${dotColor}`} />
+      <div
+        className={`absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full ${dotColor}`}
+      />
 
       <Input
         type="text"
@@ -173,7 +186,6 @@ function AutocompleteInput({
           autocomplete.setQuery(e.target.value);
           onValueChange(e.target.value);
 
-          // If user types again after selecting, clear the selection
           if (autocomplete.selectedOption) {
             autocomplete.clearSelection();
             autocomplete.setQuery(e.target.value);
@@ -186,7 +198,6 @@ function AutocompleteInput({
         }}
       />
 
-      {/* Clear button */}
       {autocomplete.query && (
         <button
           type="button"
@@ -208,6 +219,7 @@ function AutocompleteInput({
           autocomplete.selectOption(option);
           onValueChange(option.label);
         }}
+        direction={dropdownDirection}
       />
     </div>
   );
@@ -275,80 +287,81 @@ export default function RideRequestForm({
   const isDisabled = isLoading || disabled;
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 shadow-2xl">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-white text-lg flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-          Request a Ride
-        </CardTitle>
-        <CardDescription className="text-zinc-400">
-          Enter pickup and destination to find a driver.
-        </CardDescription>
-      </CardHeader>
+    <Card className="bg-zinc-900 border-zinc-800 shadow-2xl p-2">
+  <CardHeader className="pb-4 pt-5 px-6">
+    <CardTitle className="text-white text-lg flex items-center gap-2">
+      <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+      Request a Ride
+    </CardTitle>
+    <CardDescription className="text-zinc-400">
+      Enter pickup and destination to find a driver.
+    </CardDescription>
+  </CardHeader>
 
-      <CardContent>
-        <form
-          onSubmit={handleSubmit(handleFormSubmit)}
-          noValidate
-          className="space-y-4"
+  <CardContent className="px-6 pb-6">
+    <form
+      onSubmit={handleSubmit(handleFormSubmit)}
+      noValidate
+      className="space-y-5"
+    >
+      <div className="relative space-y-5">
+        <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
+
+        {/* Pickup */}
+        <FieldWrapper
+          label="Pickup"
+          error={errors.pickup?.message}
+          icon={MapPin}
         >
-          <div className="relative space-y-4">
-            {/* Vertical connector line */}
-            <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
-
-            {/* Pickup */}
-            <FieldWrapper
-              label="Pickup"
-              error={errors.pickup?.message}
-              icon={MapPin}
-            >
-              <AutocompleteInput
-                placeholder="e.g. Baneshwor, Kathmandu"
-                dotColor="bg-amber-400 ring-2 ring-amber-400/20"
-                disabled={isDisabled}
-                autocomplete={pickupAutocomplete}
-                onValueChange={(val) => setValue("pickup", val)}
-                registerProps={register("pickup")}
-              />
-            </FieldWrapper>
-
-            {/* Destination */}
-            <FieldWrapper
-              label="Destination"
-              error={errors.destination?.message}
-              icon={Navigation}
-            >
-              <AutocompleteInput
-                placeholder="e.g. Thamel, Kathmandu"
-                dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
-                disabled={isDisabled}
-                autocomplete={destinationAutocomplete}
-                onValueChange={(val) => setValue("destination", val)}
-                registerProps={register("destination")}
-              />
-            </FieldWrapper>
-          </div>
-
-          {/* Submit */}
-          <Button
-            type="submit"
+          <AutocompleteInput
+            placeholder="e.g. Baneshwor, Kathmandu"
+            dotColor="bg-amber-400 ring-2 ring-amber-400/20"
             disabled={isDisabled}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold transition-colors disabled:opacity-60"
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Requesting…
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Navigation className="h-4 w-4" />
-                Request Ride
-              </span>
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            autocomplete={pickupAutocomplete}
+            onValueChange={(val) => setValue("pickup", val)}
+            registerProps={register("pickup")}
+            dropdownDirection="down"
+          />
+        </FieldWrapper>
+
+        {/* Destination */}
+        <FieldWrapper
+          label="Destination"
+          error={errors.destination?.message}
+          icon={Navigation}
+        >
+          <AutocompleteInput
+            placeholder="e.g. Thamel, Kathmandu"
+            dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
+            disabled={isDisabled}
+            autocomplete={destinationAutocomplete}
+            onValueChange={(val) => setValue("destination", val)}
+            registerProps={register("destination")}
+            dropdownDirection="up"
+          />
+        </FieldWrapper>
+      </div>
+
+      {/* Submit */}
+      <Button
+        type="submit"
+        disabled={isDisabled}
+        className="w-full h-11 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold transition-colors disabled:opacity-60"
+      >
+        {isLoading ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Requesting…
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Navigation className="h-4 w-4" />
+            Request Ride
+          </span>
+        )}
+      </Button>
+    </form>
+  </CardContent>
+</Card>
   );
 }

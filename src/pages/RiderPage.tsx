@@ -198,7 +198,7 @@ export default function RiderPage() {
               setCurrentRide(null);
             }
           }
-        }, 3000);
+        }, 1000);
       }
     });
 
