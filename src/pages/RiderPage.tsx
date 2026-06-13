@@ -19,6 +19,8 @@ import { getAuthUser, getUserRole } from "@/lib/auth";
 import { saveRideToHistory } from "@/services/rideApi";
 import { Role } from "@/const/enum";
 
+import type { RideRequestData } from "@/components/Rider/RideRequestForm";
+
 // ---------------------------------------------------------------------------
 // Kathmandu default center
 // ---------------------------------------------------------------------------
@@ -185,17 +187,17 @@ export default function RiderPage() {
       ) {
         setTimeout(async () => {
           if (getUserRole() === Role.RIDER) {
-          try {
-            // 1. Save to MockAPI history first
-            await saveRideToHistory(ride);
-          } catch (err) {
-            console.error("[rideApi] Failed to save ride to history:", err);
-          } finally {
-            // 2. Always clear Firebase regardless of MockAPI result
-            await clearCurrentRide();
-            setCurrentRide(null);
+            try {
+              // 1. Save to MockAPI history first
+              await saveRideToHistory(ride);
+            } catch (err) {
+              console.error("[rideApi] Failed to save ride to history:", err);
+            } finally {
+              // 2. Always clear Firebase regardless of MockAPI result
+              await clearCurrentRide();
+              setCurrentRide(null);
+            }
           }
-        }
         }, 3000);
       }
     });
@@ -214,7 +216,7 @@ export default function RiderPage() {
 
   // ── Handlers ──
   const handleRideRequest = useCallback(
-    async (data: { pickup: string; destination: string }) => {
+    async (data: RideRequestData) => {
       if (!user?.email) {
         setError("You must be logged in to request a ride.");
         return;
@@ -224,7 +226,15 @@ export default function RiderPage() {
       setIsRequesting(true);
 
       try {
-        await createRideRequest(data.pickup, data.destination, user.email);
+        await createRideRequest(
+          data.pickup,
+          data.destination,
+          user.email,
+          data.pickupLat,
+          data.pickupLng,
+          data.destinationLat,
+          data.destinationLng,
+        );
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to create ride request.",
@@ -254,25 +264,33 @@ export default function RiderPage() {
   const showActivePanel = currentRide && currentRide.status !== "idle";
 
   const pickupLatLng: LatLng | undefined =
-  currentRide?.pickupLat && currentRide?.pickupLng
-    ? [currentRide.pickupLat, currentRide.pickupLng]
-    : undefined;
+    currentRide?.pickupLat && currentRide?.pickupLng
+      ? [currentRide.pickupLat, currentRide.pickupLng]
+      : undefined;
 
-const dropoffLatLng: LatLng | undefined =
-  currentRide?.destinationLat && currentRide?.destinationLng
-    ? [currentRide.destinationLat, currentRide.destinationLng]
-    : undefined;
+  const dropoffLatLng: LatLng | undefined =
+    currentRide?.destinationLat && currentRide?.destinationLng
+      ? [currentRide.destinationLat, currentRide.destinationLng]
+      : undefined;
+
+  const ridePhase =
+    currentRide?.status === "accepted"
+      ? "accepted"
+      : currentRide?.status === "active"
+        ? "active"
+        : "none";
 
   return (
     <div className="relative h-[calc(100vh-56px)] w-full">
       {/* ── Full screen map ── */}
-     <RideMap
-  center={pickupLatLng ?? KATHMANDU_CENTER}
-  riderLocation={pickupLatLng ?? riderLatLng}
-  driverLocation={driverLatLng}
-  pickupLocation={pickupLatLng}
-  dropoffLocation={dropoffLatLng}
-/>
+      <RideMap
+        center={pickupLatLng ?? KATHMANDU_CENTER}
+        riderLocation={pickupLatLng ?? riderLatLng}
+        driverLocation={driverLatLng}
+        pickupLocation={pickupLatLng}
+        dropoffLocation={dropoffLatLng}
+        ridePhase={ridePhase}
+      />
 
       {/* ── Error Toast ── */}
       {error && (

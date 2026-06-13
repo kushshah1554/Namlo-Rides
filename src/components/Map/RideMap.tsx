@@ -15,12 +15,15 @@ import "leaflet/dist/leaflet.css";
 // ---------------------------------------------------------------------------
 export type LatLng = [number, number];
 
+export type RidePhase = "idle" | "accepted" | "active" | "none";
+
 interface RideMapProps {
   center?: LatLng;
   riderLocation?: LatLng;
   driverLocation?: LatLng;
   pickupLocation?: LatLng;
   dropoffLocation?: LatLng;
+  ridePhase?: RidePhase;
   className?: string;
 }
 
@@ -32,11 +35,6 @@ const KATHMANDU_CENTER: LatLng = [27.7172, 85.324];
 // ---------------------------------------------------------------------------
 // OSRM Route Fetcher
 // ---------------------------------------------------------------------------
-
-/**
- * Decodes a Google-encoded polyline string into an array of [lat, lng] pairs.
- * OSRM returns geometry encoded in this format.
- */
 function decodePolyline(encoded: string): LatLng[] {
   const coords: LatLng[] = [];
   let index = 0;
@@ -48,7 +46,6 @@ function decodePolyline(encoded: string): LatLng[] {
     let result = 0;
     let byte: number;
 
-    // Decode latitude
     do {
       byte = encoded.charCodeAt(index++) - 63;
       result |= (byte & 0x1f) << shift;
@@ -60,7 +57,6 @@ function decodePolyline(encoded: string): LatLng[] {
     shift = 0;
     result = 0;
 
-    // Decode longitude
     do {
       byte = encoded.charCodeAt(index++) - 63;
       result |= (byte & 0x1f) << shift;
@@ -75,26 +71,16 @@ function decodePolyline(encoded: string): LatLng[] {
   return coords;
 }
 
-/**
- * Fetches a road-following route from OSRM public API.
- * Returns an array of [lat, lng] waypoints that follow actual roads.
- */
 async function fetchOsrmRoute(
   from: LatLng,
   to: LatLng
 ): Promise<LatLng[] | null> {
   try {
-    // OSRM expects [lng, lat] order (GeoJSON standard)
     const url = `https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=polyline`;
-
     const res = await fetch(url);
-
     if (!res.ok) return null;
-
     const data = await res.json();
-
     if (data.code !== "Ok" || !data.routes?.length) return null;
-
     return decodePolyline(data.routes[0].geometry);
   } catch {
     return null;
@@ -129,19 +115,22 @@ const createCustomIcon = (color: string, iconPath: string) => {
   });
 };
 
+// Standing person — Rider
 const riderIcon = createCustomIcon(
   "#f59e0b",
-  "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+  "M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm2 7h-4a2 2 0 0 0-2 2v5h2v6h4v-6h2v-5a2 2 0 0 0-2-2z"
 );
 
+// Motorcycle — Driver
 const driverIcon = createCustomIcon(
   "#ffffff",
-  "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"
+  "M19.44 9.03L15.41 5H11v2h3.59l2 2H5c-2.8 0-5 2.2-5 5s2.2 5 5 5c2.46 0 4.45-1.69 4.9-4h1.65l2.77-2.77c-.21.54-.32 1.14-.32 1.77 0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.65-1.97-4.77-4.56-4.97zM7.82 15C7.4 16.15 6.28 17 5 17c-1.63 0-3-1.37-3-3s1.37-3 3-3c1.28 0 2.4.85 2.82 2H5v2h2.82zM19 17c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"
 );
 
+// Flag — Dropoff
 const dropoffIcon = createCustomIcon(
   "#10b981",
-  "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+  "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"
 );
 
 // ---------------------------------------------------------------------------
@@ -153,12 +142,8 @@ function MapController({ center }: { center?: LatLng }) {
 
   useEffect(() => {
     if (!center) return;
-
-    // Round to 4 decimal places (~11m precision) to avoid flying on tiny GPS jitter
     const key = `${center[0].toFixed(4)},${center[1].toFixed(4)}`;
-
     if (prevKeyRef.current === key) return;
-
     prevKeyRef.current = key;
     map.flyTo(center, 13, { duration: 1.5 });
   }, [center, map]);
@@ -172,15 +157,16 @@ function MapController({ center }: { center?: LatLng }) {
 interface RoadRouteProps {
   from: LatLng;
   to: LatLng;
+  color?: string;
 }
 
-function RoadRoute({ from, to }: RoadRouteProps) {
+function RoadRoute({ from, to, color = "#f59e0b" }: RoadRouteProps) {
   const [routeCoords, setRouteCoords] = useState<LatLng[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Stable key to avoid re-fetching on every render
   const routeKey = useMemo(
-    () => `${from[0]},${from[1]}-${to[0]},${to[1]}`,
+    () =>
+      `${from[0].toFixed(4)},${from[1].toFixed(4)}-${to[0].toFixed(4)},${to[1].toFixed(4)}`,
     [from, to]
   );
 
@@ -201,11 +187,10 @@ function RoadRoute({ from, to }: RoadRouteProps) {
   }, [routeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading || !routeCoords) {
-    // Fallback: straight dashed line while route is loading
     return (
       <Polyline
         pathOptions={{
-          color: "#f59e0b",
+          color,
           weight: 3,
           opacity: 0.4,
           dashArray: "8, 8",
@@ -217,7 +202,6 @@ function RoadRoute({ from, to }: RoadRouteProps) {
 
   return (
     <>
-      {/* Route shadow for depth */}
       <Polyline
         pathOptions={{
           color: "#000000",
@@ -226,11 +210,9 @@ function RoadRoute({ from, to }: RoadRouteProps) {
         }}
         positions={routeCoords}
       />
-
-      {/* Main amber route line */}
       <Polyline
         pathOptions={{
-          color: "#f59e0b",
+          color,
           weight: 4,
           opacity: 0.9,
         }}
@@ -249,6 +231,7 @@ export default function RideMap({
   driverLocation,
   pickupLocation,
   dropoffLocation,
+  ridePhase = "none",
   className = "h-full w-full z-0",
 }: RideMapProps) {
   const initialCenter =
@@ -269,9 +252,14 @@ export default function RideMap({
 
         <MapController center={center} />
 
-        {/* Road-following route between pickup and dropoff */}
-        {pickupLocation && dropoffLocation && (
-          <RoadRoute from={pickupLocation} to={dropoffLocation} />
+        {/* ── Route: accepted → driver heading to pickup (blue dashed) ── */}
+        {ridePhase === "accepted" && driverLocation && pickupLocation && (
+          <RoadRoute from={driverLocation} to={pickupLocation} color="#3b82f6" />
+        )}
+
+        {/* ── Route: active → pickup to dropoff (amber solid) ── */}
+        {ridePhase === "active" && pickupLocation && dropoffLocation && (
+          <RoadRoute from={pickupLocation} to={dropoffLocation} color="#f59e0b" />
         )}
 
         {/* Pickup Marker */}
@@ -281,21 +269,21 @@ export default function RideMap({
           </Marker>
         )}
 
-        {/* Dropoff Marker */}
-        {dropoffLocation && (
+        {/* Dropoff Marker — only show during active ride */}
+        {dropoffLocation && ridePhase === "active" && (
           <Marker position={dropoffLocation} icon={dropoffIcon}>
             <Popup>Dropoff Location</Popup>
           </Marker>
         )}
 
-        {/* Rider Live Location */}
-        {riderLocation && !pickupLocation && (
+        {/* Rider Live Location — only when no active ride */}
+        {riderLocation && ridePhase === "none" && (
           <Marker position={riderLocation} icon={riderIcon}>
             <Popup>Your Location</Popup>
           </Marker>
         )}
 
-        {/* Driver Live Location */}
+        {/* Driver Live Location — always visible */}
         {driverLocation && (
           <Marker position={driverLocation} icon={driverIcon}>
             <Popup>Driver Location</Popup>

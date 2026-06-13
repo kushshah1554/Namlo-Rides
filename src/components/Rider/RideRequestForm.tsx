@@ -1,7 +1,10 @@
+// src/components/Rider/RideRequestForm.tsx
+
+import { useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Navigation, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,28 +15,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { usePlaceAutocomplete } from "@/hooks/usePlaceAutocomplete";
+import type { LocationOption } from "@/services/geoapify";
 
 // ---------------------------------------------------------------------------
 // Schema
 // ---------------------------------------------------------------------------
 const rideRequestSchema = z.object({
-  pickup: z
-    .string()
-    .min(2, "Pickup location is required")
-    .max(100, "Too long"),
-  destination: z
-    .string()
-    .min(2, "Destination is required")
-    .max(100, "Too long"),
+  pickup: z.string().min(2, "Pickup location is required").max(100, "Too long"),
+  destination: z.string().min(2, "Destination is required").max(100, "Too long"),
 });
 
 type RideRequestFormValues = z.infer<typeof rideRequestSchema>;
 
 // ---------------------------------------------------------------------------
+// Submitted data includes coordinates
+// ---------------------------------------------------------------------------
+export interface RideRequestData {
+  pickup: string;
+  pickupLat: number;
+  pickupLng: number;
+  destination: string;
+  destinationLat: number;
+  destinationLng: number;
+}
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 interface RideRequestFormProps {
-  onSubmit: (data: RideRequestFormValues) => void | Promise<void>;
+  onSubmit: (data: RideRequestData) => void | Promise<void>;
   isLoading?: boolean;
   disabled?: boolean;
 }
@@ -59,25 +70,166 @@ function FieldWrapper({
         {label}
       </Label>
       {children}
-      {error && (
-        <p className="text-xs text-red-400 mt-1">{error}</p>
+      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Autocomplete Dropdown
+// ---------------------------------------------------------------------------
+function AutocompleteDropdown({
+  options,
+  isLoading,
+  isOpen,
+  onSelect,
+}: {
+  options: LocationOption[];
+  isLoading: boolean;
+  isOpen: boolean;
+  onSelect: (option: LocationOption) => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800 shadow-xl custom-scrollbar">
+      {isLoading ? (
+        <div className="flex items-center gap-2 px-3 py-3 text-xs text-zinc-400">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Searching…
+        </div>
+      ) : options.length === 0 ? (
+        <div className="px-3 py-3 text-xs text-zinc-500">No results found</div>
+      ) : (
+        options.map((option, index) => (
+          <button
+            key={`${option.lat}-${option.lng}-${index}`}
+            type="button"
+            onClick={() => onSelect(option)}
+            className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+          >
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+            <span className="line-clamp-2 text-xs">{option.label}</span>
+          </button>
+        ))
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Autocomplete Input
+// ---------------------------------------------------------------------------
+function AutocompleteInput({
+  placeholder,
+  dotColor,
+  disabled,
+  autocomplete,
+  onValueChange,
+  registerProps,
+}: {
+  placeholder: string;
+  dotColor: string;
+  disabled: boolean;
+  autocomplete: ReturnType<typeof usePlaceAutocomplete>;
+  onValueChange: (value: string) => void;
+  registerProps: ReturnType<typeof useForm>["register"] extends (
+    ...args: infer A
+  ) => infer R
+    ? R
+    : never;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        autocomplete.setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [autocomplete]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className={`absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full ${dotColor}`} />
+
+      <Input
+        type="text"
+        placeholder={placeholder}
+        autoComplete="off"
+        disabled={disabled}
+        value={autocomplete.query}
+        className="pl-9 pr-8 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500 focus-visible:border-amber-500 disabled:opacity-50"
+        {...registerProps}
+        onChange={(e) => {
+          registerProps.onChange(e);
+          autocomplete.setQuery(e.target.value);
+          onValueChange(e.target.value);
+
+          // If user types again after selecting, clear the selection
+          if (autocomplete.selectedOption) {
+            autocomplete.clearSelection();
+            autocomplete.setQuery(e.target.value);
+          }
+        }}
+        onFocus={() => {
+          if (autocomplete.options.length > 0) {
+            autocomplete.setIsOpen(true);
+          }
+        }}
+      />
+
+      {/* Clear button */}
+      {autocomplete.query && (
+        <button
+          type="button"
+          onClick={() => {
+            autocomplete.clearSelection();
+            onValueChange("");
+          }}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+
+      <AutocompleteDropdown
+        options={autocomplete.options}
+        isLoading={autocomplete.isLoading}
+        isOpen={autocomplete.isOpen}
+        onSelect={(option) => {
+          autocomplete.selectOption(option);
+          onValueChange(option.label);
+        }}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Form Component
 // ---------------------------------------------------------------------------
 export default function RideRequestForm({
   onSubmit,
   isLoading = false,
   disabled = false,
 }: RideRequestFormProps) {
+  const pickupAutocomplete = usePlaceAutocomplete();
+  const destinationAutocomplete = usePlaceAutocomplete();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    setError,
     reset,
   } = useForm<RideRequestFormValues>({
     resolver: zodResolver(rideRequestSchema),
@@ -88,8 +240,36 @@ export default function RideRequestForm({
   });
 
   const handleFormSubmit = async (data: RideRequestFormValues) => {
-    await onSubmit(data);
+    // Validate that user selected from autocomplete
+    if (!pickupAutocomplete.selectedOption) {
+      setError("pickup", {
+        message: "Please select a pickup location from suggestions",
+      });
+      return;
+    }
+
+    if (!destinationAutocomplete.selectedOption) {
+      setError("destination", {
+        message: "Please select a destination from suggestions",
+      });
+      return;
+    }
+
+    const rideData: RideRequestData = {
+      pickup: data.pickup,
+      pickupLat: pickupAutocomplete.selectedOption.lat,
+      pickupLng: pickupAutocomplete.selectedOption.lng,
+      destination: data.destination,
+      destinationLat: destinationAutocomplete.selectedOption.lat,
+      destinationLng: destinationAutocomplete.selectedOption.lng,
+    };
+
+    await onSubmit(rideData);
+
+    // Reset everything
     reset();
+    pickupAutocomplete.clearSelection();
+    destinationAutocomplete.clearSelection();
   };
 
   const isDisabled = isLoading || disabled;
@@ -112,7 +292,6 @@ export default function RideRequestForm({
           noValidate
           className="space-y-4"
         >
-          {/* ── Route Indicator ── */}
           <div className="relative space-y-4">
             {/* Vertical connector line */}
             <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
@@ -123,17 +302,14 @@ export default function RideRequestForm({
               error={errors.pickup?.message}
               icon={MapPin}
             >
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-amber-400/20" />
-                <Input
-                  type="text"
-                  placeholder="e.g. Baneshwor, Kathmandu"
-                  autoComplete="off"
-                  disabled={isDisabled}
-                  className="pl-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500 focus-visible:border-amber-500 disabled:opacity-50"
-                  {...register("pickup")}
-                />
-              </div>
+              <AutocompleteInput
+                placeholder="e.g. Baneshwor, Kathmandu"
+                dotColor="bg-amber-400 ring-2 ring-amber-400/20"
+                disabled={isDisabled}
+                autocomplete={pickupAutocomplete}
+                onValueChange={(val) => setValue("pickup", val)}
+                registerProps={register("pickup")}
+              />
             </FieldWrapper>
 
             {/* Destination */}
@@ -142,21 +318,18 @@ export default function RideRequestForm({
               error={errors.destination?.message}
               icon={Navigation}
             >
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
-                <Input
-                  type="text"
-                  placeholder="e.g. Thamel, Kathmandu"
-                  autoComplete="off"
-                  disabled={isDisabled}
-                  className="pl-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500 focus-visible:border-amber-500 disabled:opacity-50"
-                  {...register("destination")}
-                />
-              </div>
+              <AutocompleteInput
+                placeholder="e.g. Thamel, Kathmandu"
+                dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
+                disabled={isDisabled}
+                autocomplete={destinationAutocomplete}
+                onValueChange={(val) => setValue("destination", val)}
+                registerProps={register("destination")}
+              />
             </FieldWrapper>
           </div>
 
-          {/* ── Submit ── */}
+          {/* Submit */}
           <Button
             type="submit"
             disabled={isDisabled}

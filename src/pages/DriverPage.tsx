@@ -368,14 +368,22 @@ export default function DriverPage() {
       ? [currentRide.destinationLat, currentRide.destinationLng]
       : undefined;
 
+  const ridePhase =
+    currentRide?.status === "accepted"
+      ? "accepted"
+      : currentRide?.status === "active"
+        ? "active"
+        : "none";
+
   return (
     <div className="relative h-[calc(100vh-56px)] w-full">
       {/* ── Full screen map ── */}
       <RideMap
         center={initialCenterRef.current}
         driverLocation={driverLocation}
-        pickupLocation={isActiveRide ? pickupLatLng : undefined}
-        dropoffLocation={isActiveRide ? dropoffLatLng : undefined}
+        pickupLocation={pickupLatLng}
+        dropoffLocation={dropoffLatLng}
+        ridePhase={ridePhase}
       />
 
       {/* ── Error Toast ── */}
