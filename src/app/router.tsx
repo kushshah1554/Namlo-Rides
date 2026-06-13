@@ -19,6 +19,7 @@ import { Role } from "@/const/enum";
 import NotFoundPage from "@/components/NotFoundPage/NotFoundPage";
 import RiderPage from "@/pages/RiderPage";
 import DriverPage from "@/pages/DriverPage";
+import HistoryPage from "@/pages/HistoryPage";
 
 // ---------------------------------------------------------------------------
 // Placeholder pages
@@ -27,9 +28,7 @@ import DriverPage from "@/pages/DriverPage";
 
 
 
-function HistoryPage() {
-  return <div className="p-8 text-white">History — coming soon</div>;
-}
+
 
 
 
@@ -71,7 +70,7 @@ const protectedRoutes: RouteConfig[] = [
   // History (both roles)
   {
     path: paths.history.path,
-    element: <HistoryPage />,
+    element: <HistoryPage/>,
     allowedRoles: [Role.RIDER, Role.DRIVER],
   },
 ];

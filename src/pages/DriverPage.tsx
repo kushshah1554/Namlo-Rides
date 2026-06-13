@@ -23,7 +23,9 @@ import {
   type CurrentRide,
   type RideStatus,
 } from "@/services/firebase";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, getUserRole } from "@/lib/auth";
+import { saveRideToHistory } from "@/services/rideApi";
+import { Role } from "@/const/enum";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -262,15 +264,24 @@ export default function DriverPage() {
 
       // Auto-clear terminal states after 3s
       if (
-        ride?.status === "completed" ||
-        ride?.status === "cancelled" ||
-        ride?.status === "rejected"
-      ) {
-        setTimeout(async () => {
-          await clearCurrentRide();
-          setCurrentRide(null);
-        }, 3000);
-      }
+  ride?.status === "completed" ||
+  ride?.status === "cancelled" ||
+  ride?.status === "rejected"
+) {
+  setTimeout(async () => {
+    if (getUserRole() === Role.RIDER) {
+    try {
+      // 1. Save to MockAPI history first
+      await saveRideToHistory(ride);
+    } catch (err) {
+      console.error("[rideApi] Failed to save ride to history:", err);
+    } finally {
+      // 2. Always clear Firebase regardless of MockAPI result
+      await clearCurrentRide();
+      setCurrentRide(null);
+    }}
+  }, 3000);
+}
     });
 
     return () => {

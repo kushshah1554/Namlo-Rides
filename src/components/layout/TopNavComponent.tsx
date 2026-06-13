@@ -90,14 +90,14 @@ function TopNavComponent() {
 
         {/* ── Right: Actions ── */}
         <div className="flex items-center gap-2">
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             onClick={() => navigate(paths.selectRole.path)}
             className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white text-xs"
           >
             Switch Role
-          </Button>
+          </Button> */}
 
           <Button
             variant="ghost"

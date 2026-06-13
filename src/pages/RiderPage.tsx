@@ -15,7 +15,9 @@ import {
   type DriverLocation,
   type RideStatus,
 } from "@/services/firebase";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, getUserRole } from "@/lib/auth";
+import { saveRideToHistory } from "@/services/rideApi";
+import { Role } from "@/const/enum";
 
 // ---------------------------------------------------------------------------
 // Kathmandu default center
@@ -152,7 +154,7 @@ export default function RiderPage() {
   // ── State ──
   const [currentRide, setCurrentRide] = useState<CurrentRide | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(
-    null
+    null,
   );
   const [isRequesting, setIsRequesting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -182,8 +184,18 @@ export default function RiderPage() {
         ride?.status === "rejected"
       ) {
         setTimeout(async () => {
-          await clearCurrentRide();
-          setCurrentRide(null);
+          if (getUserRole() === Role.RIDER) {
+          try {
+            // 1. Save to MockAPI history first
+            await saveRideToHistory(ride);
+          } catch (err) {
+            console.error("[rideApi] Failed to save ride to history:", err);
+          } finally {
+            // 2. Always clear Firebase regardless of MockAPI result
+            await clearCurrentRide();
+            setCurrentRide(null);
+          }
+        }
         }, 3000);
       }
     });
@@ -215,13 +227,13 @@ export default function RiderPage() {
         await createRideRequest(data.pickup, data.destination, user.email);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to create ride request."
+          err instanceof Error ? err.message : "Failed to create ride request.",
         );
       } finally {
         setIsRequesting(false);
       }
     },
-    [user]
+    [user],
   );
 
   const handleCancelRide = useCallback(async () => {
@@ -231,9 +243,7 @@ export default function RiderPage() {
     try {
       await cancelRide();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to cancel ride."
-      );
+      setError(err instanceof Error ? err.message : "Failed to cancel ride.");
     } finally {
       setIsCancelling(false);
     }
@@ -241,9 +251,7 @@ export default function RiderPage() {
 
   // ── Determine if form should show ──
   const showForm = !currentRide || currentRide.status === "idle";
-  const showActivePanel =
-    currentRide &&
-    currentRide.status !== "idle";
+  const showActivePanel = currentRide && currentRide.status !== "idle";
 
   return (
     <div className="relative h-[calc(100vh-56px)] w-full">
