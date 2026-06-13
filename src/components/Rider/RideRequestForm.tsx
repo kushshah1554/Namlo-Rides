@@ -1,7 +1,7 @@
 // src/components/Rider/RideRequestForm.tsx
 
 import { useRef, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm ,type UseFormRegisterReturn} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MapPin, Navigation, Loader2, X } from "lucide-react";
@@ -145,11 +145,7 @@ function AutocompleteInput({
   autocomplete: ReturnType<typeof usePlaceAutocomplete>;
   onValueChange: (value: string) => void;
   dropdownDirection?: "up" | "down";
-  registerProps: ReturnType<typeof useForm>["register"] extends (
-    ...args: infer A
-  ) => infer R
-    ? R
-    : never;
+  registerProps: UseFormRegisterReturn;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
