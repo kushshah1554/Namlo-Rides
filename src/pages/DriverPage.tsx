@@ -30,7 +30,7 @@ import { Role } from "@/const/enum";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const KATHMANDU_CENTER: LatLng = [27.7172, 85.324];
+// const KATHMANDU_CENTER: LatLng = [27.7172, 85.324];
 
 // Simulated driver starting location (slightly offset from center)
 const DRIVER_INITIAL_LOCATION: LatLng = [27.71, 85.31];
@@ -135,17 +135,14 @@ function ActiveRidePanel({
           <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
           <div>
             <p className="text-xs text-zinc-500">Destination</p>
-            <p className="text-sm text-white font-medium">
-              {ride.destination}
-            </p>
+            <p className="text-sm text-white font-medium">{ride.destination}</p>
           </div>
         </div>
       </div>
 
       {/* Rider ID */}
       <p className="text-xs text-zinc-500">
-        Rider:{" "}
-        <span className="text-zinc-300">{ride.riderId}</span>
+        Rider: <span className="text-zinc-300">{ride.riderId}</span>
       </p>
 
       {/* Actions based on status */}
@@ -189,9 +186,7 @@ function TerminalPanel({ status }: { status: RideStatus }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl p-4">
       <StatusBadge status={status} />
-      <p className="text-xs text-zinc-500 mt-3">
-        Clearing in a moment…
-      </p>
+      <p className="text-xs text-zinc-500 mt-3">Clearing in a moment…</p>
     </div>
   );
 }
@@ -204,8 +199,9 @@ export default function DriverPage() {
 
   // ── State ──
   const [currentRide, setCurrentRide] = useState<CurrentRide | null>(null);
-  const [driverLocation, setDriverLocation] =
-    useState<LatLng>(DRIVER_INITIAL_LOCATION);
+  const [driverLocation, setDriverLocation] = useState<LatLng>(
+    DRIVER_INITIAL_LOCATION,
+  );
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -214,28 +210,18 @@ export default function DriverPage() {
   // ── Refs ──
   const rideUnsubRef = useRef<(() => void) | null>(null);
   const locationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null
+    null,
   );
-
-  // ── Simulate GPS movement (small random offset each tick) ──
-  const simulateLocationUpdate = useCallback(async (base: LatLng) => {
-    const jitter = () => (Math.random() - 0.5) * 0.002;
-    const newLat = base[0] + jitter();
-    const newLng = base[1] + jitter();
-
-    setDriverLocation([newLat, newLng]);
-
-    try {
-      await updateDriverLocation(newLat, newLng);
-    } catch {
-      // Silently fail — GPS update failure shouldn't break UI
-    }
-  }, []);
+  const initialCenterRef = useRef<LatLng>(DRIVER_INITIAL_LOCATION);
 
   // ── Start GPS simulation interval ──
   useEffect(() => {
     // Initial location push
-    updateDriverLocation(DRIVER_INITIAL_LOCATION[0], DRIVER_INITIAL_LOCATION[1]);
+
+    updateDriverLocation(
+      DRIVER_INITIAL_LOCATION[0],
+      DRIVER_INITIAL_LOCATION[1],
+    );
 
     locationIntervalRef.current = setInterval(() => {
       setDriverLocation((prev) => {
@@ -255,7 +241,7 @@ export default function DriverPage() {
         clearInterval(locationIntervalRef.current);
       }
     };
-  }, [simulateLocationUpdate]);
+  }, []);
 
   // ── Subscribe to currentRide ──
   useEffect(() => {
@@ -264,24 +250,25 @@ export default function DriverPage() {
 
       // Auto-clear terminal states after 3s
       if (
-  ride?.status === "completed" ||
-  ride?.status === "cancelled" ||
-  ride?.status === "rejected"
-) {
-  setTimeout(async () => {
-    if (getUserRole() === Role.RIDER) {
-    try {
-      // 1. Save to MockAPI history first
-      await saveRideToHistory(ride);
-    } catch (err) {
-      console.error("[rideApi] Failed to save ride to history:", err);
-    } finally {
-      // 2. Always clear Firebase regardless of MockAPI result
-      await clearCurrentRide();
-      setCurrentRide(null);
-    }}
-  }, 3000);
-}
+        ride?.status === "completed" ||
+        ride?.status === "cancelled" ||
+        ride?.status === "rejected"
+      ) {
+        setTimeout(async () => {
+          if (getUserRole() === Role.RIDER) {
+            try {
+              // 1. Save to MockAPI history first
+              await saveRideToHistory(ride);
+            } catch (err) {
+              console.error("[rideApi] Failed to save ride to history:", err);
+            } finally {
+              // 2. Always clear Firebase regardless of MockAPI result
+              await clearCurrentRide();
+              setCurrentRide(null);
+            }
+          }
+        }, 3000);
+      }
     });
 
     return () => {
@@ -300,14 +287,12 @@ export default function DriverPage() {
       try {
         await acceptRide(user.email);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to accept ride."
-        );
+        setError(err instanceof Error ? err.message : "Failed to accept ride.");
       } finally {
         setLoadingId(null);
       }
     },
-    [user]
+    [user],
   );
 
   const handleReject = useCallback(async (rideId: string) => {
@@ -317,9 +302,7 @@ export default function DriverPage() {
     try {
       await rejectRide();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to reject ride."
-      );
+      setError(err instanceof Error ? err.message : "Failed to reject ride.");
     } finally {
       setLoadingId(null);
     }
@@ -332,9 +315,7 @@ export default function DriverPage() {
     try {
       await startRide();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start ride."
-      );
+      setError(err instanceof Error ? err.message : "Failed to start ride.");
     } finally {
       setIsStarting(false);
     }
@@ -347,9 +328,7 @@ export default function DriverPage() {
     try {
       await completeRide();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to complete ride."
-      );
+      setError(err instanceof Error ? err.message : "Failed to complete ride.");
     } finally {
       setIsCompleting(false);
     }
@@ -379,15 +358,24 @@ export default function DriverPage() {
         ]
       : [];
 
+  const pickupLatLng: LatLng | undefined =
+    currentRide?.pickupLat && currentRide?.pickupLng
+      ? [currentRide.pickupLat, currentRide.pickupLng]
+      : undefined;
+
+  const dropoffLatLng: LatLng | undefined =
+    currentRide?.destinationLat && currentRide?.destinationLng
+      ? [currentRide.destinationLat, currentRide.destinationLng]
+      : undefined;
+
   return (
     <div className="relative h-[calc(100vh-56px)] w-full">
       {/* ── Full screen map ── */}
       <RideMap
-        center={driverLocation}
+        center={initialCenterRef.current}
         driverLocation={driverLocation}
-        pickupLocation={
-          isActiveRide ? KATHMANDU_CENTER : undefined
-        }
+        pickupLocation={isActiveRide ? pickupLatLng : undefined}
+        dropoffLocation={isActiveRide ? dropoffLatLng : undefined}
       />
 
       {/* ── Error Toast ── */}

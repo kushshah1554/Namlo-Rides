@@ -253,19 +253,26 @@ export default function RiderPage() {
   const showForm = !currentRide || currentRide.status === "idle";
   const showActivePanel = currentRide && currentRide.status !== "idle";
 
+  const pickupLatLng: LatLng | undefined =
+  currentRide?.pickupLat && currentRide?.pickupLng
+    ? [currentRide.pickupLat, currentRide.pickupLng]
+    : undefined;
+
+const dropoffLatLng: LatLng | undefined =
+  currentRide?.destinationLat && currentRide?.destinationLng
+    ? [currentRide.destinationLat, currentRide.destinationLng]
+    : undefined;
+
   return (
     <div className="relative h-[calc(100vh-56px)] w-full">
       {/* ── Full screen map ── */}
-      <RideMap
-        center={KATHMANDU_CENTER}
-        riderLocation={riderLatLng}
-        driverLocation={driverLatLng}
-        pickupLocation={
-          currentRide && currentRide.status !== "idle"
-            ? KATHMANDU_CENTER
-            : undefined
-        }
-      />
+     <RideMap
+  center={pickupLatLng ?? KATHMANDU_CENTER}
+  riderLocation={pickupLatLng ?? riderLatLng}
+  driverLocation={driverLatLng}
+  pickupLocation={pickupLatLng}
+  dropoffLocation={dropoffLatLng}
+/>
 
       {/* ── Error Toast ── */}
       {error && (

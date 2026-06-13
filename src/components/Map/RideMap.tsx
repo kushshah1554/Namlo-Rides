@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -149,11 +149,18 @@ const dropoffIcon = createCustomIcon(
 // ---------------------------------------------------------------------------
 function MapController({ center }: { center?: LatLng }) {
   const map = useMap();
+  const prevKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (center) {
-      map.flyTo(center, 13, { duration: 1.5 });
-    }
+    if (!center) return;
+
+    // Round to 4 decimal places (~11m precision) to avoid flying on tiny GPS jitter
+    const key = `${center[0].toFixed(4)},${center[1].toFixed(4)}`;
+
+    if (prevKeyRef.current === key) return;
+
+    prevKeyRef.current = key;
+    map.flyTo(center, 13, { duration: 1.5 });
   }, [center, map]);
 
   return null;

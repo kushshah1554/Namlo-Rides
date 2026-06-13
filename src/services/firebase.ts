@@ -12,7 +12,6 @@ import {
   push,
   serverTimestamp,
   off,
-//   type DatabaseReference,
   type Unsubscribe,
 } from "firebase/database";
 
@@ -34,6 +33,11 @@ export interface DriverLocation {
   updatedAt: number | null;
 }
 
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
 export interface CurrentRide {
   id: string;
   pickup: string;
@@ -44,6 +48,11 @@ export interface CurrentRide {
   requestedAt: number;
   acceptedAt?: number | null;
   completedAt?: number | null;
+  // Geocoded coordinates
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +75,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getDatabase(app);
 
 // ---------------------------------------------------------------------------
-// DB Refs (centralized — single source of truth for paths)
+// DB Refs
 // ---------------------------------------------------------------------------
 const REFS = {
   currentRide: () => ref(db, "currentRide"),
@@ -75,11 +84,67 @@ const REFS = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// Geocoding — Nominatim (OpenStreetMap) — Free, no API key needed
+// ---------------------------------------------------------------------------
+
+/**
+ * Converts a place name to lat/lng coordinates.
+ * Automatically appends ", Kathmandu, Nepal" for local accuracy.
+ * Returns null if the place is not found.
+ */
+export async function geocode(place: string): Promise<Coordinates | null> {
+  try {
+    const query = encodeURIComponent(`${place.trim()}, Kathmandu, Nepal`);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`;
+
+    const res = await fetch(url, {
+      headers: {
+        // Nominatim requires a User-Agent header — use your app name
+        "Accept-Language": "en",
+      },
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) return null;
+
+    return {
+      lat: Number(data[0].lat),
+      lng: Number(data[0].lon),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Geocodes both pickup and destination in parallel.
+ * Returns both coordinate pairs or null for each if not found.
+ */
+export async function geocodeBoth(
+  pickup: string,
+  destination: string
+): Promise<{
+  pickupCoords: Coordinates | null;
+  destinationCoords: Coordinates | null;
+}> {
+  const [pickupCoords, destinationCoords] = await Promise.all([
+    geocode(pickup),
+    geocode(destination),
+  ]);
+
+  return { pickupCoords, destinationCoords };
+}
+
+// ---------------------------------------------------------------------------
 // Ride Service — Rider Actions
 // ---------------------------------------------------------------------------
 
 /**
  * Creates a new ride request in Firebase.
+ * Geocodes pickup and destination before writing to DB.
  * Called by Rider when they submit the RideRequestForm.
  */
 export async function createRideRequest(
@@ -87,9 +152,15 @@ export async function createRideRequest(
   destination: string,
   riderId: string
 ): Promise<string> {
-  // Generate a unique ride ID using Firebase push key
+  // Generate a unique ride ID
   const rideRef = push(ref(db, "rides"));
   const rideId = rideRef.key!;
+
+  // Geocode pickup and destination in parallel
+  const { pickupCoords, destinationCoords } = await geocodeBoth(
+    pickup,
+    destination
+  );
 
   const rideData: CurrentRide = {
     id: rideId,
@@ -101,6 +172,11 @@ export async function createRideRequest(
     requestedAt: Date.now(),
     acceptedAt: null,
     completedAt: null,
+    // Coordinates — null if geocoding failed
+    pickupLat: pickupCoords?.lat ?? null,
+    pickupLng: pickupCoords?.lng ?? null,
+    destinationLat: destinationCoords?.lat ?? null,
+    destinationLng: destinationCoords?.lng ?? null,
   };
 
   // Write to currentRide (realtime sync between tabs)
@@ -215,7 +291,6 @@ export async function completeRide(): Promise<void> {
 
 /**
  * Clears the currentRide node after a terminal state is saved to MockAPI.
- * Called after completed / cancelled / rejected ride is saved to history.
  */
 export async function clearCurrentRide(): Promise<void> {
   await remove(REFS.currentRide());
@@ -227,7 +302,7 @@ export async function clearCurrentRide(): Promise<void> {
 
 /**
  * Updates driver's live GPS location in Firebase.
- * Should be called every few seconds while driver is active.
+ * Called every few seconds while driver is active.
  */
 export async function updateDriverLocation(
   lat: number,
@@ -247,7 +322,6 @@ export async function updateDriverLocation(
 /**
  * Listens to currentRide changes in real time.
  * Used by both Rider and Driver pages.
- * Returns an unsubscribe function for cleanup.
  */
 export function subscribeToCurrentRide(
   callback: (ride: CurrentRide | null) => void
@@ -262,14 +336,12 @@ export function subscribeToCurrentRide(
     }
   });
 
-  // Return cleanup function
   return () => off(rideRef, "value", unsubscribe);
 }
 
 /**
  * Listens to driver location changes in real time.
  * Used by Rider page to show live driver marker on map.
- * Returns an unsubscribe function for cleanup.
  */
 export function subscribeToDriverLocation(
   callback: (location: DriverLocation | null) => void
@@ -288,8 +360,7 @@ export function subscribeToDriverLocation(
 }
 
 /**
- * One-time fetch of currentRide (no real time).
- * Useful for checking state before an action.
+ * One-time fetch of currentRide (no realtime).
  */
 export async function getCurrentRide(): Promise<CurrentRide | null> {
   const snapshot = await get(REFS.currentRide());

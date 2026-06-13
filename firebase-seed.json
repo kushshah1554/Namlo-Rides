@@ -8,7 +8,11 @@
     "driverId": null,
     "requestedAt": null,
     "acceptedAt": null,
-    "completedAt": null
+    "completedAt": null,
+    "pickupLat": null,
+    "pickupLng": null,
+    "destinationLat": null,
+    "destinationLng": null
   },
   "driverLocation": {
     "lat": 27.7172,
