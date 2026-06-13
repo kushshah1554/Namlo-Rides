@@ -146,7 +146,7 @@ function AutocompleteInput({
   onValueChange: (value: string) => void;
   dropdownDirection?: "up" | "down";
   registerProps: ReturnType<typeof useForm>["register"] extends (
-    ...args
+    ...args: infer A
   ) => infer R
     ? R
     : never;
