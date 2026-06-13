@@ -11,6 +11,8 @@ import {
   X,
   Navigation,
   Loader2,
+  ChevronUp,
+  Minus,
 } from "lucide-react";
 import {
   acceptRide,
@@ -114,66 +116,89 @@ function ActiveRidePanel({
   isStarting: boolean;
   isCompleting: boolean;
 }) {
+  const [isMinimized, setIsMinimized] = useState(false);
+
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl p-4 space-y-4">
-      {/* Status */}
-      <StatusBadge status={ride.status} />
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl p-4 space-y-4 transition-all duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <StatusBadge status={ride.status} />
 
-      {/* Route */}
-      <div className="relative space-y-3">
-        <div className="absolute left-2.25 top-2.5 h-[calc(100%-16px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
-
-        <div className="flex items-start gap-3">
-          <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400 ring-2 ring-amber-400/20" />
-          <div>
-            <p className="text-xs text-zinc-500">Pickup</p>
-            <p className="text-sm text-white font-medium">{ride.pickup}</p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
-          <div>
-            <p className="text-xs text-zinc-500">Destination</p>
-            <p className="text-sm text-white font-medium">{ride.destination}</p>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsMinimized((prev) => !prev)}
+          className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          aria-label={isMinimized ? "Expand panel" : "Minimize panel"}
+        >
+          {isMinimized ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <Minus className="h-4 w-4" />
+          )}
+        </button>
       </div>
 
-      {/* Rider ID */}
-      <p className="text-xs text-zinc-500">
-        Rider: <span className="text-zinc-300">{ride.riderId}</span>
-      </p>
+      {!isMinimized && (
+        <>
+          {/* Route */}
+          <div className="relative space-y-3">
+            <div className="absolute left-2.25 top-2.5 h-[calc(100%-16px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
 
-      {/* Actions based on status */}
-      {ride.status === "accepted" && (
-        <Button
-          onClick={onStart}
-          disabled={isStarting}
-          className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold disabled:opacity-60"
-        >
-          {isStarting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Car className="h-4 w-4 mr-2" />
-          )}
-          Start Ride
-        </Button>
-      )}
+            <div className="flex items-start gap-3">
+              <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400 ring-2 ring-amber-400/20" />
+              <div>
+                <p className="text-xs text-zinc-500">Pickup</p>
+                <p className="text-sm text-white font-medium">{ride.pickup}</p>
+              </div>
+            </div>
 
-      {ride.status === "active" && (
-        <Button
-          onClick={onComplete}
-          disabled={isCompleting}
-          className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold disabled:opacity-60"
-        >
-          {isCompleting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4 mr-2" />
+            <div className="flex items-start gap-3">
+              <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
+              <div>
+                <p className="text-xs text-zinc-500">Destination</p>
+                <p className="text-sm text-white font-medium">
+                  {ride.destination}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rider ID */}
+          <p className="text-xs text-zinc-500">
+            Rider: <span className="text-zinc-300">{ride.riderId}</span>
+          </p>
+
+          {/* Actions */}
+          {ride.status === "accepted" && (
+            <Button
+              onClick={onStart}
+              disabled={isStarting}
+              className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold disabled:opacity-60"
+            >
+              {isStarting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Car className="h-4 w-4 mr-2" />
+              )}
+              Start Ride
+            </Button>
           )}
-          Complete Ride
-        </Button>
+
+          {ride.status === "active" && (
+            <Button
+              onClick={onComplete}
+              disabled={isCompleting}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold disabled:opacity-60"
+            >
+              {isCompleting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+              )}
+              Complete Ride
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

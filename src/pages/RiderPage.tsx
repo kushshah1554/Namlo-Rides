@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import RideMap, { type LatLng } from "@/components/Map/RideMap";
 import RideRequestForm from "@/components/Rider/RideRequestForm";
 import { Button } from "@/components/ui/button";
-import { Loader2, X, Car, MapPin, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, X, Car, MapPin, CheckCircle2, XCircle, ChevronUp, Minus } from "lucide-react";
 import {
   createRideRequest,
   cancelRide,
@@ -98,50 +98,70 @@ function ActiveRidePanel({
   onCancel: () => void;
   isCancelling: boolean;
 }) {
+  const [isMinimized, setIsMinimized] = useState(false);
+
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl p-4 space-y-4">
-      {/* Status */}
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl p-4 space-y-4 transition-all duration-300">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <StatusBadge status={ride.status} />
-      </div>
 
-      {/* Route */}
-      <div className="relative space-y-3">
-        {/* Connector line */}
-        <div className="absolute left-2.25 top-2.5 h-[calc(100%-16px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
-
-        <div className="flex items-start gap-3">
-          <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400 ring-2 ring-amber-400/20" />
-          <div>
-            <p className="text-xs text-zinc-500">Pickup</p>
-            <p className="text-sm text-white font-medium">{ride.pickup}</p>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
-          <div>
-            <p className="text-xs text-zinc-500">Destination</p>
-            <p className="text-sm text-white font-medium">{ride.destination}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cancel button — only show when ride can still be cancelled */}
-      {ride.status === "requested" && (
-        <Button
-          onClick={onCancel}
-          disabled={isCancelling}
-          variant="outline"
-          className="w-full border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 font-semibold"
+        <button
+          type="button"
+          onClick={() => setIsMinimized((prev) => !prev)}
+          className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          aria-label={isMinimized ? "Expand panel" : "Minimize panel"}
         >
-          {isCancelling ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          {isMinimized ? (
+            <ChevronUp className="h-4 w-4" />
           ) : (
-            <X className="h-4 w-4 mr-2" />
+            <Minus className="h-4 w-4" />
           )}
-          Cancel Ride
-        </Button>
+        </button>
+      </div>
+
+      {!isMinimized && (
+        <>
+          {/* Route */}
+          <div className="relative space-y-3">
+            <div className="absolute left-2.25 top-2.5 h-[calc(100%-16px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
+
+            <div className="flex items-start gap-3">
+              <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400 ring-2 ring-amber-400/20" />
+              <div>
+                <p className="text-xs text-zinc-500">Pickup</p>
+                <p className="text-sm text-white font-medium">{ride.pickup}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
+              <div>
+                <p className="text-xs text-zinc-500">Destination</p>
+                <p className="text-sm text-white font-medium">
+                  {ride.destination}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Cancel button */}
+          {ride.status === "requested" && (
+            <Button
+              onClick={onCancel}
+              disabled={isCancelling}
+              variant="outline"
+              className="w-full border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 font-semibold"
+            >
+              {isCancelling ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <X className="h-4 w-4 mr-2" />
+              )}
+              Cancel Ride
+            </Button>
+          )}
+        </>
       )}
     </div>
   );
