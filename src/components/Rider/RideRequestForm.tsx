@@ -1,10 +1,16 @@
 // src/components/Rider/RideRequestForm.tsx
 
-import { useRef, useEffect } from "react";
-import { useForm ,type UseFormRegisterReturn} from "react-hook-form";
+import { useRef, useEffect, useState } from "react";
+import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Navigation, Loader2, X } from "lucide-react";
+import {
+  MapPin,
+  Navigation,
+  Loader2,
+  X,
+  LocateFixed,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { usePlaceAutocomplete } from "@/hooks/usePlaceAutocomplete";
-import type { LocationOption } from "@/services/geoapify";
+import { getCurrentLocationOption, type LocationOption } from "@/services/geoapify";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -138,6 +144,7 @@ function AutocompleteInput({
   onValueChange,
   registerProps,
   dropdownDirection = "down",
+  isDetecting = false,
 }: {
   placeholder: string;
   dotColor: string;
@@ -146,6 +153,7 @@ function AutocompleteInput({
   onValueChange: (value: string) => void;
   dropdownDirection?: "up" | "down";
   registerProps: UseFormRegisterReturn;
+  isDetecting?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -169,54 +177,65 @@ function AutocompleteInput({
         className={`absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full ${dotColor}`}
       />
 
-      <Input
-        type="text"
-        placeholder={placeholder}
-        autoComplete="off"
-        disabled={disabled}
-        value={autocomplete.query}
-        className="pl-9 pr-8 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500 focus-visible:border-amber-500 disabled:opacity-50"
-        {...registerProps}
-        onChange={(e) => {
-          registerProps.onChange(e);
-          autocomplete.setQuery(e.target.value);
-          onValueChange(e.target.value);
+      {isDetecting ? (
+        <div className="flex items-center gap-2 pl-9 pr-3 h-9 bg-zinc-800 border border-zinc-700 rounded-md">
+          <LocateFixed className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+          <span className="text-xs text-zinc-400">
+            Detecting current location…
+          </span>
+        </div>
+      ) : (
+        <>
+          <Input
+            type="text"
+            placeholder={placeholder}
+            autoComplete="off"
+            disabled={disabled}
+            value={autocomplete.query}
+            className="pl-9 pr-8 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500 focus-visible:border-amber-500 disabled:opacity-50"
+            {...registerProps}
+            onChange={(e) => {
+              registerProps.onChange(e);
+              autocomplete.setQuery(e.target.value);
+              onValueChange(e.target.value);
 
-          if (autocomplete.selectedOption) {
-            autocomplete.clearSelection();
-            autocomplete.setQuery(e.target.value);
-          }
-        }}
-        onFocus={() => {
-          if (autocomplete.options.length > 0) {
-            autocomplete.setIsOpen(true);
-          }
-        }}
-      />
+              if (autocomplete.selectedOption) {
+                autocomplete.clearSelection();
+                autocomplete.setQuery(e.target.value);
+              }
+            }}
+            onFocus={() => {
+              if (autocomplete.options.length > 0) {
+                autocomplete.setIsOpen(true);
+              }
+            }}
+          />
 
-      {autocomplete.query && (
-        <button
-          type="button"
-          onClick={() => {
-            autocomplete.clearSelection();
-            onValueChange("");
-          }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+          {autocomplete.query && (
+            <button
+              type="button"
+              onClick={() => {
+                autocomplete.clearSelection();
+                onValueChange("");
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          <AutocompleteDropdown
+            options={autocomplete.options}
+            isLoading={autocomplete.isLoading}
+            isOpen={autocomplete.isOpen}
+            onSelect={(option) => {
+              autocomplete.selectOption(option);
+              onValueChange(option.label);
+            }}
+            direction={dropdownDirection}
+          />
+        </>
       )}
-
-      <AutocompleteDropdown
-        options={autocomplete.options}
-        isLoading={autocomplete.isLoading}
-        isOpen={autocomplete.isOpen}
-        onSelect={(option) => {
-          autocomplete.selectOption(option);
-          onValueChange(option.label);
-        }}
-        direction={dropdownDirection}
-      />
     </div>
   );
 }
@@ -231,6 +250,7 @@ export default function RideRequestForm({
 }: RideRequestFormProps) {
   const pickupAutocomplete = usePlaceAutocomplete();
   const destinationAutocomplete = usePlaceAutocomplete();
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   const {
     register,
@@ -247,8 +267,37 @@ export default function RideRequestForm({
     },
   });
 
+  // ── Auto-detect current location on mount ──
+  useEffect(() => {
+    let cancelled = false;
+
+    const detectLocation = async () => {
+      setIsDetectingLocation(true);
+
+      try {
+        const location = await getCurrentLocationOption();
+
+        if (!cancelled && location) {
+          pickupAutocomplete.setInitialOption(location);
+          setValue("pickup", location.label);
+        }
+      } catch {
+        // Silently fail — user can manually type pickup
+      } finally {
+        if (!cancelled) {
+          setIsDetectingLocation(false);
+        }
+      }
+    };
+
+    detectLocation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleFormSubmit = async (data: RideRequestFormValues) => {
-    // Validate that user selected from autocomplete
     if (!pickupAutocomplete.selectedOption) {
       setError("pickup", {
         message: "Please select a pickup location from suggestions",
@@ -274,7 +323,6 @@ export default function RideRequestForm({
 
     await onSubmit(rideData);
 
-    // Reset everything
     reset();
     pickupAutocomplete.clearSelection();
     destinationAutocomplete.clearSelection();
@@ -284,80 +332,81 @@ export default function RideRequestForm({
 
   return (
     <Card className="bg-zinc-900 border-zinc-800 shadow-2xl p-2">
-  <CardHeader className="pb-4 pt-5 px-6">
-    <CardTitle className="text-white text-lg flex items-center gap-2">
-      <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-      Request a Ride
-    </CardTitle>
-    <CardDescription className="text-zinc-400">
-      Enter pickup and destination to find a driver.
-    </CardDescription>
-  </CardHeader>
+      <CardHeader className="pb-4 pt-5 px-6">
+        <CardTitle className="text-white text-lg flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          Request a Ride
+        </CardTitle>
+        <CardDescription className="text-zinc-400">
+          Enter pickup and destination to find a driver.
+        </CardDescription>
+      </CardHeader>
 
-  <CardContent className="px-6 pb-6">
-    <form
-      onSubmit={handleSubmit(handleFormSubmit)}
-      noValidate
-      className="space-y-5"
-    >
-      <div className="relative space-y-5">
-        <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
-
-        {/* Pickup */}
-        <FieldWrapper
-          label="Pickup"
-          error={errors.pickup?.message}
-          icon={MapPin}
+      <CardContent className="px-6 pb-6">
+        <form
+          onSubmit={handleSubmit(handleFormSubmit)}
+          noValidate
+          className="space-y-5"
         >
-          <AutocompleteInput
-            placeholder="e.g. Baneshwor, Kathmandu"
-            dotColor="bg-amber-400 ring-2 ring-amber-400/20"
-            disabled={isDisabled}
-            autocomplete={pickupAutocomplete}
-            onValueChange={(val) => setValue("pickup", val)}
-            registerProps={register("pickup")}
-            dropdownDirection="down"
-          />
-        </FieldWrapper>
+          <div className="relative space-y-5">
+            <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
 
-        {/* Destination */}
-        <FieldWrapper
-          label="Destination"
-          error={errors.destination?.message}
-          icon={Navigation}
-        >
-          <AutocompleteInput
-            placeholder="e.g. Thamel, Kathmandu"
-            dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
-            disabled={isDisabled}
-            autocomplete={destinationAutocomplete}
-            onValueChange={(val) => setValue("destination", val)}
-            registerProps={register("destination")}
-            dropdownDirection="up"
-          />
-        </FieldWrapper>
-      </div>
+            {/* Pickup — auto-filled with current location */}
+            <FieldWrapper
+              label="Pickup"
+              error={errors.pickup?.message}
+              icon={MapPin}
+            >
+              <AutocompleteInput
+                placeholder="e.g. Baneshwor, Kathmandu"
+                dotColor="bg-amber-400 ring-2 ring-amber-400/20"
+                disabled={isDisabled}
+                autocomplete={pickupAutocomplete}
+                onValueChange={(val) => setValue("pickup", val)}
+                registerProps={register("pickup")}
+                dropdownDirection="down"
+                isDetecting={isDetectingLocation}
+              />
+            </FieldWrapper>
 
-      {/* Submit */}
-      <Button
-        type="submit"
-        disabled={isDisabled}
-        className="w-full h-11 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold transition-colors disabled:opacity-60"
-      >
-        {isLoading ? (
-          <span className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Requesting…
-          </span>
-        ) : (
-          <span className="flex items-center gap-2">
-            <Navigation className="h-4 w-4" />
-            Request Ride
-          </span>
-        )}
-      </Button>
-    </form>
-  </CardContent>
-</Card>
+            {/* Destination */}
+            <FieldWrapper
+              label="Destination"
+              error={errors.destination?.message}
+              icon={Navigation}
+            >
+              <AutocompleteInput
+                placeholder="e.g. Thamel, Kathmandu"
+                dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
+                disabled={isDisabled}
+                autocomplete={destinationAutocomplete}
+                onValueChange={(val) => setValue("destination", val)}
+                registerProps={register("destination")}
+                dropdownDirection="up"
+              />
+            </FieldWrapper>
+          </div>
+
+          {/* Submit */}
+          <Button
+            type="submit"
+            disabled={isDisabled || isDetectingLocation}
+            className="w-full h-11 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold transition-colors disabled:opacity-60"
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Requesting…
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Navigation className="h-4 w-4" />
+                Request Ride
+              </span>
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

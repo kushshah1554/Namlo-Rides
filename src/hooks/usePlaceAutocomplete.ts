@@ -11,6 +11,7 @@ interface UsePlaceAutocompleteReturn {
   selectedOption: LocationOption | null;
   selectOption: (option: LocationOption) => void;
   clearSelection: () => void;
+  setInitialOption: (option: LocationOption) => void;
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
 }
@@ -24,14 +25,11 @@ export function usePlaceAutocomplete(): UsePlaceAutocompleteReturn {
   );
   const [isOpen, setIsOpen] = useState(false);
 
-  // Debounce ref
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Don't search if user already selected an option
     if (selectedOption) return;
 
-    // Clear previous debounce
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -71,6 +69,15 @@ export function usePlaceAutocomplete(): UsePlaceAutocompleteReturn {
     setIsOpen(false);
   };
 
+  /**
+   * Sets an initial option without opening dropdown or triggering search.
+   * Used for pre-filling pickup with current location.
+   */
+  const setInitialOption = (option: LocationOption) => {
+    setSelectedOption(option);
+    setQuery(option.label);
+  };
+
   return {
     query,
     setQuery,
@@ -79,6 +86,7 @@ export function usePlaceAutocomplete(): UsePlaceAutocompleteReturn {
     selectedOption,
     selectOption,
     clearSelection,
+    setInitialOption,
     isOpen,
     setIsOpen,
   };
