@@ -1,6 +1,6 @@
 // src/components/Driver/DriverRequests.tsx
 
-import { MapPin, Navigation, Check, X, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Check, X, Loader2,Minus, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useState } from "react";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -144,45 +145,66 @@ export default function DriverRequests({
   onReject,
   loadingId = null,
 }: DriverRequestsProps) {
+    const [isMinimized, setIsMinimized] = useState(false);
+
   return (
-   <Card className="bg-zinc-900 border-zinc-800 shadow-2xl p-2">
-  <CardHeader className="pb-4 pt-5 px-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <CardTitle className="text-white text-lg flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-          Ride Requests
-        </CardTitle>
-        <CardDescription className="text-zinc-400 mt-1">
-          Incoming ride requests from riders.
-        </CardDescription>
-      </div>
+    <Card className="bg-zinc-900 border-zinc-800 shadow-2xl p-2 transition-all duration-300">
+      <CardHeader className="pb-4 pt-5 px-6">
+        <div className="flex items-center justify-between required:">
+          <div>
+            <CardTitle className="text-white text-lg flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              Ride Requests
+            </CardTitle>
+            {!isMinimized && (
+              <CardDescription className="text-zinc-400 mt-1">
+                Incoming ride requests from riders.
+              </CardDescription>
+            )}
+          </div>
 
-      {requests.length > 0 && (
-        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
-          {requests.length}
-        </span>
+          <div className="flex items-center gap-2">
+            {requests.length > 0 && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                {requests.length}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsMinimized((prev) => !prev)}
+              className={`${!isMinimized &&  "absolute right-4 top-5 -translate-y-1/2"} flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors`}
+              aria-label={isMinimized ? "Expand requests" : "Minimize requests"}
+            >
+              {isMinimized ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <Minus className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </CardHeader>
+
+      {!isMinimized && (
+        <CardContent className="px-6 pb-6">
+          {requests.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="space-y-3 max-h-100 overflow-y-auto pr-1 custom-scrollbar">
+              {requests.map((request) => (
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  onAccept={() => onAccept(request.id)}
+                  onReject={() => onReject(request.id)}
+                  isLoading={loadingId === request.id}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
       )}
-    </div>
-  </CardHeader>
-
-  <CardContent className="px-6 pb-6">
-    {requests.length === 0 ? (
-      <EmptyState />
-    ) : (
-      <div className="space-y-3 max-h-100 overflow-y-auto pr-1 custom-scrollbar">
-        {requests.map((request) => (
-          <RequestCard
-            key={request.id}
-            request={request}
-            onAccept={() => onAccept(request.id)}
-            onReject={() => onReject(request.id)}
-            isLoading={loadingId === request.id}
-          />
-        ))}
-      </div>
-    )}
-  </CardContent>
-</Card>
+    </Card>
   );
 }

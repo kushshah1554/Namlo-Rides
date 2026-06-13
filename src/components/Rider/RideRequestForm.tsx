@@ -9,7 +9,7 @@ import {
   Navigation,
   Loader2,
   X,
-  LocateFixed,
+  LocateFixed,  Minus, ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -251,6 +251,7 @@ export default function RideRequestForm({
   const pickupAutocomplete = usePlaceAutocomplete();
   const destinationAutocomplete = usePlaceAutocomplete();
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const {
     register,
@@ -331,82 +332,103 @@ export default function RideRequestForm({
   const isDisabled = isLoading || disabled;
 
   return (
-    <Card className="bg-zinc-900 border-zinc-800 shadow-2xl p-2">
-      <CardHeader className="pb-4 pt-5 px-6">
-        <CardTitle className="text-white text-lg flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-          Request a Ride
-        </CardTitle>
-        <CardDescription className="text-zinc-400">
-          Enter pickup and destination to find a driver.
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="px-6 pb-6">
-        <form
-          onSubmit={handleSubmit(handleFormSubmit)}
-          noValidate
-          className="space-y-5"
-        >
-          <div className="relative space-y-5">
-            <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
-
-            {/* Pickup — auto-filled with current location */}
-            <FieldWrapper
-              label="Pickup"
-              error={errors.pickup?.message}
-              icon={MapPin}
-            >
-              <AutocompleteInput
-                placeholder="e.g. Baneshwor, Kathmandu"
-                dotColor="bg-amber-400 ring-2 ring-amber-400/20"
-                disabled={isDisabled}
-                autocomplete={pickupAutocomplete}
-                onValueChange={(val) => setValue("pickup", val)}
-                registerProps={register("pickup")}
-                dropdownDirection="down"
-                isDetecting={isDetectingLocation}
-              />
-            </FieldWrapper>
-
-            {/* Destination */}
-            <FieldWrapper
-              label="Destination"
-              error={errors.destination?.message}
-              icon={Navigation}
-            >
-              <AutocompleteInput
-                placeholder="e.g. Thamel, Kathmandu"
-                dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
-                disabled={isDisabled}
-                autocomplete={destinationAutocomplete}
-                onValueChange={(val) => setValue("destination", val)}
-                registerProps={register("destination")}
-                dropdownDirection="up"
-              />
-            </FieldWrapper>
+     <Card className="bg-zinc-900 border-zinc-800 shadow-2xl p-2 transition-all duration-300">
+      <CardHeader className="pb-4 pt-5 px-6 relative">
+        <div className="flex items-center justify-between ">
+          <div>
+            <CardTitle className="text-white text-lg flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              Request a Ride
+            </CardTitle>
+            {!isMinimized && (
+              <CardDescription className="text-zinc-400 mt-1">
+                Enter pickup and destination to find a driver.
+              </CardDescription>
+            )}
           </div>
 
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={isDisabled || isDetectingLocation}
-            className="w-full h-11 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold transition-colors disabled:opacity-60"
+          <button
+            type="button"
+            onClick={() => setIsMinimized((prev) => !prev)}
+            className={`${!isMinimized &&  "absolute right-2 top-3 -translate-y-1/2"} flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors`}
+            aria-label={isMinimized ? "Expand form" : "Minimize form"}
           >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Requesting…
-              </span>
+            {isMinimized ? (
+              <ChevronUp className="h-4 w-4" />
             ) : (
-              <span className="flex items-center gap-2">
-                <Navigation className="h-4 w-4" />
-                Request Ride
-              </span>
+              <Minus className="h-4 w-4" />
             )}
-          </Button>
-        </form>
-      </CardContent>
+          </button>
+        </div>
+      </CardHeader>
+
+      {!isMinimized && (
+        <CardContent className="px-6 pb-6">
+          <form
+            onSubmit={handleSubmit(handleFormSubmit)}
+            noValidate
+            className="space-y-5"
+          >
+            <div className="relative space-y-5">
+              <div className="absolute left-4.25 top-9.5 h-[calc(100%-60px)] w-0.5 bg-linear-to-b from-amber-500 to-emerald-500 opacity-30" />
+
+              {/* Pickup */}
+              <FieldWrapper
+                label="Pickup"
+                error={errors.pickup?.message}
+                icon={MapPin}
+              >
+                <AutocompleteInput
+                  placeholder="e.g. Baneshwor, Kathmandu"
+                  dotColor="bg-amber-400 ring-2 ring-amber-400/20"
+                  disabled={isDisabled}
+                  autocomplete={pickupAutocomplete}
+                  onValueChange={(val) => setValue("pickup", val)}
+                  registerProps={register("pickup")}
+                  dropdownDirection="down"
+                  isDetecting={isDetectingLocation}
+                />
+              </FieldWrapper>
+
+              {/* Destination */}
+              <FieldWrapper
+                label="Destination"
+                error={errors.destination?.message}
+                icon={Navigation}
+              >
+                <AutocompleteInput
+                  placeholder="e.g. Thamel, Kathmandu"
+                  dotColor="bg-emerald-400 ring-2 ring-emerald-400/20"
+                  disabled={isDisabled}
+                  autocomplete={destinationAutocomplete}
+                  onValueChange={(val) => setValue("destination", val)}
+                  registerProps={register("destination")}
+                  dropdownDirection="up"
+                />
+              </FieldWrapper>
+            </div>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              disabled={isDisabled || isDetectingLocation}
+              className="w-full h-11 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold transition-colors disabled:opacity-60"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Requesting…
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Navigation className="h-4 w-4" />
+                  Request Ride
+                </span>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      )}
     </Card>
   );
 }
