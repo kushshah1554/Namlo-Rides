@@ -63,5 +63,3 @@ export function getUserRole(): string | null {
 
 
 
-// Matched the same dark zinc gradient background
-// Used amber accent colors instead of blue
