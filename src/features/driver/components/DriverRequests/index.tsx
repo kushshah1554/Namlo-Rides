@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/card";
 import RequestCard, { type RideRequest } from "./RequestCard";
 import EmptyState from "./EmptyState";
-import MinimizeButton from "./MinimizeButton";
+import MinimizeButton from "@/components/shared/MinimizeButton";
+
 
 
 interface DriverRequestsProps {
@@ -53,6 +54,7 @@ export default function DriverRequests({
             <MinimizeButton
               isMinimized={isMinimized}
               onToggle={() => setIsMinimized((prev) => !prev)}
+              style= {"absolute right-4 top-5 -translate-y-1/2"}
             />
           </div>
         </div>

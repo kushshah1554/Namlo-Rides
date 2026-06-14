@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Loader2, Car, CheckCircle2, ChevronUp, Minus } from "lucide-react";
+import { Loader2, Car, CheckCircle2,  } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CurrentRide } from "@/services/firebase";
 import StatusBadge from "./StatusBadge";
+import MinimizeButton from "@/components/shared/MinimizeButton";
+
 
 interface ActiveRidePanelProps {
   ride: CurrentRide;
@@ -27,18 +29,11 @@ export default function ActiveRidePanel({
       <div className="flex items-center justify-between relative">
         <StatusBadge status={ride.status} />
 
-        <button
-          type="button"
-          onClick={() => setIsMinimized((prev) => !prev)}
-          className={`${!isMinimized &&  "absolute right-0 top-1 -translate-y-1/2"} flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors`}
-          aria-label={isMinimized ? "Expand panel" : "Minimize panel"}
-        >
-          {isMinimized ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <Minus className="h-4 w-4" />
-          )}
-        </button>
+        <MinimizeButton
+          isMinimized={isMinimized}
+          onToggle={() => setIsMinimized((prev) => !prev)}
+          style={"absolute right-0 top-1 -translate-y-1/2"}
+        />
       </div>
 
       {!isMinimized && (
@@ -68,8 +63,7 @@ export default function ActiveRidePanel({
 
           {/* Rider ID */}
           <p className="text-xs text-zinc-500">
-            Rider:{" "}
-            <span className="text-zinc-300">{ride.riderId}</span>
+            Rider: <span className="text-zinc-300">{ride.riderId}</span>
           </p>
 
           {/* Actions */}

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Loader2, X, ChevronUp, Minus } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CurrentRide } from "@/services/firebase";
 import StatusBadge from "./StatusBadge";
+import MinimizeButton from "@/components/shared/MinimizeButton";
 
 interface ActiveRidePanelProps {
   ride: CurrentRide;
@@ -23,7 +24,7 @@ export default function ActiveRidePanel({
       <div className="flex items-center justify-between">
         <StatusBadge status={ride.status} />
 
-        <button
+        {/* <button
           type="button"
           onClick={() => setIsMinimized((prev) => !prev)}
           className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
@@ -34,7 +35,12 @@ export default function ActiveRidePanel({
           ) : (
             <Minus className="h-4 w-4" />
           )}
-        </button>
+        </button> */}
+        <MinimizeButton
+          isMinimized={isMinimized}
+          onToggle={() => setIsMinimized((prev) => !prev)}
+          style={"absolute right-4 top-5 -translate-y-1/2"}
+        />
       </div>
 
       {!isMinimized && (
