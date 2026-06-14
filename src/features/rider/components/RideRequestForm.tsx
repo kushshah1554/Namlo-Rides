@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { usePlaceAutocomplete } from "@/hooks/usePlaceAutocomplete";
+import { usePlaceAutocomplete } from "../hooks/usePlaceAutocomplete";
 import { getCurrentLocationOption, type LocationOption } from "@/services/geoapify";
 
 // ---------------------------------------------------------------------------

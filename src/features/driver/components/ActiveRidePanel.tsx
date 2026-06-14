@@ -24,13 +24,13 @@ export default function ActiveRidePanel({
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl p-4 space-y-4 transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative">
         <StatusBadge status={ride.status} />
 
         <button
           type="button"
           onClick={() => setIsMinimized((prev) => !prev)}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          className={`${!isMinimized &&  "absolute right-0 top-1 -translate-y-1/2"} flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors`}
           aria-label={isMinimized ? "Expand panel" : "Minimize panel"}
         >
           {isMinimized ? (
