@@ -1,4 +1,4 @@
-// src/hooks/useRideHistory.ts
+// src/features/history/hooks/useRideHistory.ts
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -36,7 +36,7 @@ export function useRideHistory(): UseRideHistoryReturn {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return {
     rides,

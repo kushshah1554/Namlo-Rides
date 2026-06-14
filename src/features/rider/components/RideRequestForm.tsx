@@ -1,4 +1,3 @@
-// src/components/Rider/RideRequestForm.tsx
 
 import { useRef, useEffect, useState } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";

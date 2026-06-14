@@ -4,8 +4,12 @@ import { useRoutes } from "react-router-dom";
 import { type JSX } from "react";
 
 // Pages
-import LoginPage from "@/pages/LoginPage";
-import SelectRolePage from "@/pages/SelectRolePage";
+// import LoginPage from "@/pages/LoginPage";
+import LoginPage from "@/features/auth";
+
+// import SelectRolePage from "@/pages/SelectRolePage";
+// src/app/router.tsx
+import SelectRolePage from "@/features/role-select";
 
 // Layout & Guards
 import Layout from "@/components/layout/Layout";
@@ -17,9 +21,14 @@ import RoleRoute from "@/routes/RoleRoute";
 import { paths } from "@/const/paths";
 import { Role } from "@/const/enum";
 import NotFoundPage from "@/components/NotFoundPage/NotFoundPage";
-import RiderPage from "@/pages/RiderPage";
-import DriverPage from "@/pages/DriverPage";
-import HistoryPage from "@/pages/HistoryPage";
+// import RiderPage from "@/pages/RiderPage";
+import RiderPage from "@/features/rider";
+// import DriverPage from "@/pages/DriverPage";
+// src/app/router.tsx
+import DriverPage from "@/features/driver";
+// import HistoryPage from "@/pages/HistoryPage";
+// src/app/router.tsx
+import HistoryPage from "@/features/history";
 
 // ---------------------------------------------------------------------------
 // Placeholder pages
