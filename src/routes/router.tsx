@@ -3,12 +3,8 @@
 import { useRoutes } from "react-router-dom";
 import { type JSX } from "react";
 
-// Pages
-// import LoginPage from "@/pages/LoginPage";
 import LoginPage from "@/features/auth";
 
-// import SelectRolePage from "@/pages/SelectRolePage";
-// src/app/router.tsx
 import SelectRolePage from "@/features/role-select";
 
 // Layout & Guards
@@ -21,29 +17,10 @@ import RoleRoute from "@/routes/RoleRoute";
 import { paths } from "@/const/paths";
 import { Role } from "@/const/enum";
 import NotFoundPage from "@/components/NotFoundPage/NotFoundPage";
-// import RiderPage from "@/pages/RiderPage";
 import RiderPage from "@/features/rider";
-// import DriverPage from "@/pages/DriverPage";
-// src/app/router.tsx
 import DriverPage from "@/features/driver";
-// import HistoryPage from "@/pages/HistoryPage";
-// src/app/router.tsx
 import HistoryPage from "@/features/history";
 
-// ---------------------------------------------------------------------------
-// Placeholder pages
-// ---------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-// ---------------------------------------------------------------------------
-// Route Config Interface
-// ---------------------------------------------------------------------------
 interface RouteConfig {
   path?: string;
   index?: boolean;
@@ -79,7 +56,7 @@ const protectedRoutes: RouteConfig[] = [
   // History (both roles)
   {
     path: paths.history.path,
-    element: <HistoryPage/>,
+    element: <HistoryPage />,
     allowedRoles: [Role.RIDER, Role.DRIVER],
   },
 ];
@@ -92,9 +69,7 @@ function buildProtectedRoutes() {
 
     if (route.allowedRoles) {
       routeElement = (
-        <RoleRoute allowedRoles={route.allowedRoles}>
-          {route.element}
-        </RoleRoute>
+        <RoleRoute allowedRoles={route.allowedRoles}>{route.element}</RoleRoute>
       );
     } else if (route.excludedRoles) {
       routeElement = (
@@ -106,7 +81,7 @@ function buildProtectedRoutes() {
 
     if (route.index) {
       return {
-        index: true ,
+        index: true,
         element: routeElement,
       };
     }
