@@ -2,8 +2,11 @@ import type { LatLng } from "@/components/Map/RideMap";
 import type { CurrentRide } from "@/services/firebase";
 import type { RidePhase } from "@/components/Map/RideMap";
 
-export const DRIVER_INITIAL_LOCATION: LatLng = [27.71, 85.31];
-export const LOCATION_UPDATE_INTERVAL = 4000;
+// Remove static initial location — we now use real GPS
+export const LOCATION_UPDATE_INTERVAL = 5000;
+
+// Kathmandu fallback — only used if GPS fails
+export const KATHMANDU_FALLBACK: LatLng = [27.7172, 85.324];
 
 export function derivePickupLatLng(
   ride: CurrentRide | null

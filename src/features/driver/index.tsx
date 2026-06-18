@@ -7,15 +7,17 @@ import { useDriverActions } from "./hooks/useDriverActions";
 import ActiveRidePanel from "./components/ActiveRidePanel";
 import TerminalPanel from "./components/TerminalPanel";
 import ErrorToast from "@/components/shared/ErrorToast";
+import GpsStatusBanner from "./components/GpsStatusBanner";
 import {
   derivePickupLatLng,
   deriveDropoffLatLng,
   deriveRidePhase,
   buildRequestsList,
+  KATHMANDU_FALLBACK,
 } from "./utils/driverMapUtils";
 
 export default function DriverPage() {
-  const { driverLocation, initialCenterRef } = useDriverGps();
+  const { driverLocation, initialCenterRef, gpsStatus } = useDriverGps();
   const { currentRide } = useDriverRealtime();
   const {
     loadingId,
@@ -62,28 +64,32 @@ export default function DriverPage() {
     currentRide.status === "idle" ||
     currentRide.status === "requested";
 
+  // ── Map center — use live location or fallback ──
+  const mapCenter = driverLocation ?? initialCenterRef.current ?? KATHMANDU_FALLBACK;
+
   return (
     <div className="relative h-[calc(100vh-56px)] w-full">
       {/* Map */}
       <RideMap
-        center={initialCenterRef.current}
-        driverLocation={driverLocation}
+        center={mapCenter}
+        driverLocation={driverLocation ?? undefined}
         pickupLocation={pickupLatLng}
         dropoffLocation={dropoffLatLng}
         ridePhase={ridePhase}
       />
+
+      {/* GPS Status Banner */}
+      <GpsStatusBanner status={gpsStatus} />
 
       {/* Error Toast */}
       {error && <ErrorToast error={error} onDismiss={clearError} />}
 
       {/* Bottom Right Panel */}
       <div className="absolute bottom-6 right-6 w-full max-w-md z-10 space-y-3">
-        {/* Terminal state */}
         {isTerminal && currentRide && (
           <TerminalPanel status={currentRide.status} />
         )}
 
-        {/* Active ride panel */}
         {isActiveRide && currentRide && (
           <ActiveRidePanel
             ride={currentRide}
@@ -94,7 +100,6 @@ export default function DriverPage() {
           />
         )}
 
-        {/* Incoming requests */}
         {showRequests && (
           <DriverRequests
             requests={requests}
